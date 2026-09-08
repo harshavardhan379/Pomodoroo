@@ -1,0 +1,18 @@
+{
+  "name": "focusblocks",
+  "version": "1.0.0",
+  "description": "A simple Pomodoro web app with a Node/SQLite backend that syncs your session log across devices.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2"
+  }
+}

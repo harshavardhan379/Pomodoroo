@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Focusblocks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>
+      </span>
+      <span class="brand-name">Focusblocks</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-link is-active" data-view="timer">Timer</button>
+      <button class="nav-link" data-view="report">Report</button>
+      <button id="syncStatus" class="sync-pill" title="Sync settings" data-state="off">Sync off</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= TIMER ================= -->
+    <section id="view-timer" class="view">
+      <div class="hero">
+        <div class="segmented" role="tablist">
+          <button class="seg is-active" data-mode="pomodoro" role="tab">Pomodoro</button>
+          <button class="seg" data-mode="short" role="tab">Short Break</button>
+          <button class="seg" data-mode="long" role="tab">Long Break</button>
+        </div>
+
+        <div class="ring-wrap">
+          <svg class="ring" width="300" height="300" viewBox="0 0 300 300">
+            <circle class="ring-track" cx="150" cy="150" r="132" fill="none" stroke-width="14"></circle>
+            <circle class="ring-progress" cx="150" cy="150" r="132" fill="none" stroke-width="14" stroke-linecap="round" transform="rotate(-90 150 150)"></circle>
+          </svg>
+          <div class="ring-center">
+            <span id="clock" class="clock">25:00</span>
+            <span id="ring-sub" class="ring-sub">Session #1 &middot; Time to focus</span>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="startPause" class="btn-primary">Start</button>
+          <button id="reset" class="btn-icon" title="Reset timer" aria-label="Reset timer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Today's sessions</h2>
+          <span id="todaySummary" class="muted">No sessions yet</span>
+        </div>
+        <div class="table card">
+          <div class="tr th">
+            <span>#</span><span>Task</span><span>Block</span><span class="ta-r">Time</span>
+          </div>
+          <div id="todayRows"></div>
+          <div id="todayEmpty" class="table-empty">Finish a Pomodoro to log your first session.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= REPORT ================= -->
+    <section id="view-report" class="view" hidden>
+      <h1 class="page-title">Report</h1>
+      <p class="muted">Your focus sessions over time.</p>
+
+      <div class="kpis">
+        <div class="kpi card"><span class="kpi-label">Today</span><span class="kpi-value" id="kpiToday">0 <em>sessions</em></span></div>
+        <div class="kpi card"><span class="kpi-label">This week</span><span class="kpi-value" id="kpiWeek">0 <em>sessions</em></span></div>
+        <div class="kpi card"><span class="kpi-label">Daily average</span><span class="kpi-value" id="kpiAvg">0</span></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="panel-head">
+          <h2>Sessions per day</h2>
+          <span class="muted">Last 7 days</span>
+        </div>
+        <div id="chart" class="chart"></div>
+        <div id="chartLabels" class="chart-labels"></div>
+      </div>
+
+      <div class="card table-card">
+        <div class="panel-head">
+          <h2>All sessions</h2>
+          <span class="sort">
+            Sort by
+            <button class="sort-btn" data-sort="date">Date</button>
+            <button class="sort-btn is-active" data-sort="block">Block</button>
+          </span>
+        </div>
+        <div class="table">
+          <div class="tr th tr-report">
+            <span>Date</span><span>Task</span><span data-col="block">Block</span><span class="ta-r">Length</span>
+          </div>
+          <div id="reportRows"></div>
+          <div id="reportEmpty" class="table-empty">No sessions recorded yet.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- assign-session dialog -->
+  <div id="assignBackdrop" class="backdrop" hidden>
+    <div class="dialog card" role="dialog" aria-modal="true" aria-labelledby="assignTitle">
+      <h3 id="assignTitle">Log session #<span id="assignNo">1</span></h3>
+      <p class="muted">Nice work. What was this block for?</p>
+      <label class="field">
+        <span>Task</span>
+        <input id="assignTask" type="text" placeholder="e.g. Write onboarding spec" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Block</span>
+        <input id="assignBlock" type="text" list="blockList" placeholder="e.g. Deep Work" autocomplete="off">
+        <datalist id="blockList"></datalist>
+      </label>
+      <div class="dialog-actions">
+        <button id="assignSkip" class="btn-ghost">Skip</button>
+        <button id="assignSave" class="btn-primary">Save session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- sync settings dialog -->
+  <div id="syncBackdrop" class="backdrop" hidden>
+    <div class="dialog card" role="dialog" aria-modal="true" aria-labelledby="syncTitle">
+      <h3 id="syncTitle">Sync across devices</h3>
+      <p class="muted">Enter the sync key from your server to keep this device's session log in sync. Leave blank to keep everything only on this device.</p>
+      <label class="field">
+        <span>Server URL</span>
+        <input id="syncUrl" type="url" placeholder="This site" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Sync key</span>
+        <input id="syncKey" type="password" placeholder="paste key" autocomplete="off">
+      </label>
+      <p id="syncMsg" class="sync-msg" hidden></p>
+      <div class="dialog-actions">
+        <button id="syncCancel" class="btn-ghost">Cancel</button>
+        <button id="syncSave" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

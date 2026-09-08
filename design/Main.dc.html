@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; font-family: 'IBM Plex Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #c65f45; text-decoration: none; } a:hover { color: #b04f38; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="width: 1000px; min-height: 1120px; background: #fbf9f6; color: #3a3632;">
+
+  <!-- top bar -->
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid #ece7e1;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 26px; height: 26px; border-radius: 7px; background: #c65f45; display: flex; align-items: center; justify-content: center;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>
+      </div>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.01em;">Focusblocks</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <span style="padding: 7px 14px; border-radius: 8px; background: #f2ede7; font-weight: 600; font-size: 14px;">Timer</span>
+      <span style="padding: 7px 14px; border-radius: 8px; color: #8a8178; font-weight: 500; font-size: 14px;">Report</span>
+    </div>
+  </div>
+
+  <!-- timer hero -->
+  <div style="display: flex; flex-direction: column; align-items: center; padding: 46px 40px 52px;">
+
+    <div style="display: flex; gap: 4px; background: #f2ede7; padding: 4px; border-radius: 12px;">
+      <span style="padding: 9px 20px; border-radius: 9px; background: #ffffff; color: #c65f45; font-weight: 600; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);">Pomodoro</span>
+      <span style="padding: 9px 20px; border-radius: 9px; color: #8a8178; font-weight: 500; font-size: 14px;">Short Break</span>
+      <span style="padding: 9px 20px; border-radius: 9px; color: #8a8178; font-weight: 500; font-size: 14px;">Long Break</span>
+    </div>
+
+    <div style="position: relative; width: 300px; height: 300px; margin: 42px 0 4px;">
+      <svg width="300" height="300" viewBox="0 0 300 300">
+        <circle cx="150" cy="150" r="132" fill="none" stroke="#efe7e2" stroke-width="14"></circle>
+        <circle cx="150" cy="150" r="132" fill="none" stroke="#c65f45" stroke-width="14" stroke-linecap="round" stroke-dasharray="829.4" stroke-dashoffset="415" transform="rotate(-90 150 150)"></circle>
+      </svg>
+      <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 66px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1;">12:30</span>
+        <span style="margin-top: 10px; font-size: 13px; color: #8a8178; font-weight: 500;">Session #4 &middot; Deep Work</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 14px; margin-top: 26px;">
+      <span style="display: flex; align-items: center; gap: 9px; padding: 15px 44px; border-radius: 12px; background: #c65f45; color: #fff; font-weight: 600; font-size: 16px; box-shadow: 0 2px 6px rgba(198,95,69,0.28);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+        Pause
+      </span>
+      <span style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 12px; border: 1px solid #e4ddd5; color: #8a8178;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>
+      </span>
+    </div>
+  </div>
+
+  <!-- session log -->
+  <div style="padding: 0 40px 52px;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px;">
+      <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px;">Today's sessions</span>
+      <span style="font-size: 13px; color: #8a8178;">3 sessions &middot; 1h 15m focused</span>
+    </div>
+
+    <div style="border: 1px solid #ece7e1; border-radius: 14px; overflow: hidden; background: #fff;">
+      <div style="display: grid; grid-template-columns: 52px 1fr 150px 78px; padding: 12px 18px; background: #faf7f3; border-bottom: 1px solid #ece7e1; font-size: 11px; font-weight: 600; color: #9a9086; text-transform: uppercase; letter-spacing: 0.05em;">
+        <span>#</span><span>Task</span><span>Block</span><span style="text-align: right;">Time</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 52px 1fr 150px 78px; align-items: center; padding: 14px 18px; border-bottom: 1px solid #f2ede7; font-size: 14px;">
+        <span style="color: #b3a99e; font-variant-numeric: tabular-nums;">1</span>
+        <span>Write onboarding spec</span>
+        <span><span style="display: inline-block; padding: 3px 10px; border-radius: 999px; background: #f7e9e4; color: #b04f38; font-size: 12px; font-weight: 600;">Deep Work</span></span>
+        <span style="text-align: right; color: #8a8178; font-variant-numeric: tabular-nums;">09:12</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 52px 1fr 150px 78px; align-items: center; padding: 14px 18px; border-bottom: 1px solid #f2ede7; font-size: 14px;">
+        <span style="color: #b3a99e; font-variant-numeric: tabular-nums;">2</span>
+        <span>Inbox &amp; standup notes</span>
+        <span><span style="display: inline-block; padding: 3px 10px; border-radius: 999px; background: #e8ecf6; color: #45599c; font-size: 12px; font-weight: 600;">Admin</span></span>
+        <span style="text-align: right; color: #8a8178; font-variant-numeric: tabular-nums;">10:03</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 52px 1fr 150px 78px; align-items: center; padding: 14px 18px; border-bottom: 1px solid #f2ede7; font-size: 14px;">
+        <span style="color: #b3a99e; font-variant-numeric: tabular-nums;">3</span>
+        <span>Read DDIA &mdash; ch. 5</span>
+        <span><span style="display: inline-block; padding: 3px 10px; border-radius: 999px; background: #e2f0eb; color: #2f7d68; font-size: 12px; font-weight: 600;">Learning</span></span>
+        <span style="text-align: right; color: #8a8178; font-variant-numeric: tabular-nums;">10:44</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px; padding: 15px 18px; color: #9a9086; font-size: 14px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Assign session #4 to a task &amp; block&hellip;
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

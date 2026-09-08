@@ -1,0 +1,10 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1000, "h": 1120, "title": "Timer" },
+    { "file": "Report.dc.html", "x": 1140, "y": 0, "w": 1000, "h": 1200, "title": "Report" }
+  ],
+  "annotations": [
+    { "id": "note-brief", "x": 0, "y": -170, "w": 500, "text": "Focusblocks - simple Pomodoro web app (2 pages).\n\nTimer: 3 modes (Pomodoro / Short / Long Break) + circular countdown. Below, today's session log: auto S.No / Task / Block.\n\nReport: sessions per day + a table sortable by Block (shown grouped by Block).\n\nStatic hi-fi mockups, one direction. 'Block' = a category you tag each session with (Deep Work / Admin / Learning). Name + sample data are placeholders." }
+  ],
+  "launch": { "view": "canvas" }
+}
