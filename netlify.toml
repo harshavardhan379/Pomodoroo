@@ -1,15 +1,14 @@
-# Static frontend only. Netlify cannot run the Express + SQLite backend.
-# Timer, log, and report work with localStorage. Cross-device sync needs a
-# separate host (Fly / Railway / Render) — paste that API URL in the Sync pill.
+# Netlify hosts the frontend and the serverless session API.
 
 [build]
   command = "echo 'No build — publishing public/'"
   publish = "public"
+  functions = "netlify/functions"
 
-[build.environment]
-  # Skip installing better-sqlite3 (native module). It is only used by the
-  # Node server and will fail Netlify's automatic npm install.
-  NPM_FLAGS = "--dry-run"
+[[redirects]]
+  from = "/api/sessions"
+  to = "/.netlify/functions/sessions"
+  status = 200
 
 [[redirects]]
   from = "/*"
