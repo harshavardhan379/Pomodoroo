@@ -55,6 +55,18 @@ All except `/api/health` require `Authorization: Bearer <SYNC_KEY>`.
 
 ## Deploy
 
+### Netlify (frontend)
+
+The timer works as a static site. In the Netlify UI, connect this repo and leave
+build settings to `netlify.toml` (publish directory `public`, no real build).
+
+Do **not** set the build command to `npm start` — that starts a long-lived Express
+server, which Netlify does not run. Session data stays in the browser
+(`localStorage`). Cross-device sync is optional: host the API elsewhere, then
+paste that origin and sync key in the **Sync** pill.
+
+### Docker / Fly / Railway / Render (frontend + API)
+
 Any host that runs a container with a persistent volume works. The repo includes a
 `Dockerfile` and a `fly.toml`:
 
