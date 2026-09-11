@@ -3,11 +3,19 @@ import crypto from 'node:crypto';
 
 const store = getStore('focusblocks');
 
+function configuredKeys() {
+  return (process.env.ACCESS_KEYS || process.env.ACCESS_KEY || '')
+    .split(/[\n,]/)
+    .map((key) => key.trim())
+    .filter(Boolean);
+}
+
 function authorized(request) {
-  const configured = process.env.ACCESS_KEY || '';
+  const keys = configuredKeys();
   const supplied = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!configured || supplied.length !== configured.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(configured));
+  const match = keys.find((key) => supplied.length === key.length
+    && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(key)));
+  return match ? crypto.createHash('sha256').update(match).digest('hex').slice(0, 24) : null;
 }
 
 function clean(record) {
@@ -35,18 +43,20 @@ function mergeSessions(remote, incoming) {
 
 export default async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 });
-  if (!process.env.ACCESS_KEY) return Response.json({ error: 'ACCESS_KEY is not configured' }, { status: 503 });
-  if (!authorized(request)) return Response.json({ error: 'unauthorized' }, { status: 401 });
+  if (!configuredKeys().length) return Response.json({ error: 'ACCESS_KEYS is not configured' }, { status: 503 });
+  const ownerId = authorized(request);
+  if (!ownerId) return Response.json({ error: 'unauthorized' }, { status: 401 });
   if (request.method !== 'GET' && request.method !== 'PUT') {
     return Response.json({ error: 'method not allowed' }, { status: 405 });
   }
 
-  const current = (await store.get('sessions', { type: 'json' })) || [];
+  const storageKey = `sessions-${ownerId}`;
+  const current = (await store.get(storageKey, { type: 'json' })) || [];
   if (request.method === 'GET') return Response.json({ sessions: current });
 
   const body = await request.json().catch(() => ({}));
   const incoming = Array.isArray(body.sessions) ? body.sessions : [];
   const sessions = mergeSessions(current, incoming);
-  await store.setJSON('sessions', sessions);
+  await store.setJSON(storageKey, sessions);
   return Response.json({ sessions });
 };

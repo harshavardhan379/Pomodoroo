@@ -12,16 +12,26 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
 
+function configuredKeys() {
+  return (process.env.ACCESS_KEYS || process.env.ACCESS_KEY || '')
+    .split(/[\n,]/)
+    .map((key) => key.trim())
+    .filter(Boolean);
+}
+
 function authorized(req) {
-  const configured = process.env.ACCESS_KEY || '';
+  const keys = configuredKeys();
   const supplied = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!configured || supplied.length !== configured.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(configured));
+  const match = keys.find((key) => supplied.length === key.length
+    && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(key)));
+  return match ? crypto.createHash('sha256').update(match).digest('hex').slice(0, 24) : null;
 }
 
 function requireAccess(req, res, next) {
-  if (!process.env.ACCESS_KEY) return res.status(503).json({ error: 'ACCESS_KEY is not configured' });
-  if (!authorized(req)) return res.status(401).json({ error: 'unauthorized' });
+  if (!configuredKeys().length) return res.status(503).json({ error: 'ACCESS_KEYS is not configured' });
+  const ownerId = authorized(req);
+  if (!ownerId) return res.status(401).json({ error: 'unauthorized' });
+  req.ownerId = ownerId;
   next();
 }
 
@@ -36,15 +46,15 @@ if (process.env.ALLOW_ORIGIN) {
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
-app.get('/api/sessions', requireAccess, (_req, res) => res.json({ sessions: listSessions() }));
+app.get('/api/sessions', requireAccess, (req, res) => res.json({ sessions: listSessions(req.ownerId) }));
 
 app.put('/api/sessions', requireAccess, (req, res) => {
   const incoming = Array.isArray(req.body?.sessions) ? req.body.sessions : [];
   const valid = incoming.filter((session) => (
     session && typeof session.id === 'string' && Number.isFinite(session.ts)
   ));
-  upsertMany(valid);
-  res.json({ sessions: listSessions() });
+  upsertMany(req.ownerId, valid);
+  res.json({ sessions: listSessions(req.ownerId) });
 });
 
 app.use(express.static(path.join(ROOT, 'public'), { extensions: ['html'] }));
