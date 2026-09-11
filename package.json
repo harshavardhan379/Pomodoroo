@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node --watch server/index.js"
+    "dev": "node --watch server/index.js",
+    "build": "echo 'Static frontend — publish public/'"
   },
   "engines": {
     "node": ">=20"
