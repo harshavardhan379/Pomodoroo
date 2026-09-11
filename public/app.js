@@ -15,8 +15,9 @@
   const STORE_KEY = 'focusblocks.sessions.v1';
   const TIMER_KEY = 'focusblocks.timer.v1';
   const PENDING_KEY = 'focusblocks.pending.v1';
-  const SYNC_KEY = 'focusblocks.sync.v1';
+  const ACCESS_KEY = 'focusblocks.access.v1';
   const CHIME_HZ = [880, 660, 990];
+  const API_ROOT = '/api';
 
   // ---------- state ----------
   let mode = 'pomodoro';
@@ -73,6 +74,86 @@
   const assignTask = $('#assignTask');
   const assignBlock = $('#assignBlock');
   const blockList = $('#blockList');
+  const exportSessionsEl = $('#exportSessions');
+  const importSessionsEl = $('#importSessions');
+  const importFileEl = $('#importFile');
+  const lockAppEl = $('#lockApp');
+  const authBackdrop = $('#authBackdrop');
+  const accessKeyEl = $('#accessKey');
+  const authMsgEl = $('#authMsg');
+  let accessKey = readJSON(ACCESS_KEY, '');
+
+  function showLogin(message = '') {
+    authMsgEl.textContent = message;
+    authMsgEl.hidden = !message;
+    authBackdrop.hidden = false;
+    setTimeout(() => accessKeyEl.focus(), 30);
+  }
+
+  function hideLogin() {
+    authBackdrop.hidden = true;
+    authMsgEl.hidden = true;
+    accessKeyEl.value = '';
+  }
+
+  function lockApp() {
+    accessKey = '';
+    remove(ACCESS_KEY);
+    showLogin();
+  }
+
+  // ---------- portable backups ----------
+  function exportSessions() {
+    const backup = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), sessions }, null, 2);
+    const blob = new Blob([backup], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `focusblocks-sessions-${todayKey()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importSessions(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        const incoming = Array.isArray(parsed) ? parsed : parsed.sessions;
+        if (!Array.isArray(incoming)) throw new Error('invalid backup');
+
+        const imported = incoming
+          .filter((session) => session && typeof session.id === 'string' && Number.isFinite(session.ts))
+          .map((session) => ({
+            id: session.id,
+            date: session.date || dayKey(new Date(session.ts)),
+            ts: session.ts,
+            task: String(session.task || ''),
+            block: String(session.block || 'Unassigned'),
+            minutes: Number(session.minutes) || MODES.pomodoro.minutes,
+            updatedAt: Number(session.updatedAt) || session.ts,
+          }));
+
+        const byId = new Map(sessions.map((session) => [session.id, session]));
+        imported.forEach((session) => {
+          const existing = byId.get(session.id);
+          if (!existing || session.updatedAt >= existing.updatedAt) byId.set(session.id, session);
+        });
+        sessions = [...byId.values()].sort((a, b) => a.ts - b.ts);
+        saveSessions();
+        render();
+        renderToday();
+        renderReport();
+        pushSync();
+        alert(`${imported.length} session${imported.length === 1 ? '' : 's'} imported.`);
+      } catch {
+        alert('That file is not a valid Focusblocks backup.');
+      }
+      importFileEl.value = '';
+    };
+    reader.readAsText(file);
+  }
 
   // ---------- timer ----------
   function setMode(next) {
@@ -335,84 +416,69 @@
     ));
   }
 
-  // ---------- sync ----------
-  // The session log optionally syncs to the backend. localStorage stays the
-  // working copy (offline-first); the server is the shared source of truth,
-  // merged last-writer-wins per record by `updatedAt`.
-  let syncCfg = readJSON(SYNC_KEY, { url: '', key: '' });
+  // ---------- shared single-user history ----------
   let syncTimer = null;
   let syncInFlight = false;
+  let syncQueued = false;
 
-  const syncOn = () => !!syncCfg.key;
-  const apiRoot = () => (syncCfg.url ? syncCfg.url.replace(/\/+$/, '') : '') + '/api';
-
-  function setSyncPill(state, label) {
-    const el = $('#syncStatus');
-    el.dataset.state = state;
-    el.textContent = label;
+  function mergeSessions(remote) {
+    const byId = new Map(remote.map((session) => [session.id, session]));
+    sessions.forEach((session) => {
+      const existing = byId.get(session.id);
+      if (!existing || Number(session.updatedAt || session.ts) >= Number(existing.updatedAt || existing.ts)) {
+        byId.set(session.id, session);
+      }
+    });
+    return [...byId.values()].sort((a, b) => a.ts - b.ts);
   }
 
   async function syncNow() {
-    if (!syncOn() || syncInFlight) return;
+    if (!accessKey) {
+      showLogin();
+      return false;
+    }
+    if (syncInFlight) { syncQueued = true; return; }
     syncInFlight = true;
-    setSyncPill('syncing', 'Syncing…');
     try {
-      const res = await fetch(apiRoot() + '/sessions', {
+      const headers = { Authorization: `Bearer ${accessKey}` };
+      const read = await fetch(`${API_ROOT}/sessions`, { headers });
+      if (read.status === 401) {
+        accessKey = '';
+        remove(ACCESS_KEY);
+        showLogin('That access key is not valid.');
+        return false;
+      }
+      if (!read.ok) throw new Error(`http ${read.status}`);
+      const remote = (await read.json()).sessions || [];
+      const merged = mergeSessions(remote);
+      const write = await fetch(`${API_ROOT}/sessions`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${syncCfg.key}` },
-        body: JSON.stringify({ sessions }),
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessions: merged }),
       });
-      if (res.status === 401) { setSyncPill('error', 'Bad key'); return; }
-      if (!res.ok) throw new Error('http ' + res.status);
-      const data = await res.json();
-      sessions = (data.sessions || []).filter((s) => !s.deleted);
+      if (!write.ok) throw new Error(`http ${write.status}`);
+      sessions = ((await write.json()).sessions || merged).sort((a, b) => a.ts - b.ts);
       saveSessions();
       render();
       renderToday();
       renderReport();
-      setSyncPill('on', 'Synced');
+      hideLogin();
+      return true;
     } catch {
-      setSyncPill('error', 'Offline');
+      // localStorage remains usable when the server is temporarily offline.
+      return false;
     } finally {
       syncInFlight = false;
+      if (syncQueued) {
+        syncQueued = false;
+        syncNow();
+      }
     }
   }
 
-  // debounce writes so a burst of edits makes one request
   function pushSync() {
-    if (!syncOn()) return;
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(syncNow, 600);
-  }
-
-  function openSyncDialog() {
-    $('#syncUrl').value = syncCfg.url || '';
-    $('#syncKey').value = syncCfg.key || '';
-    const msg = $('#syncMsg'); msg.hidden = true;
-    $('#syncBackdrop').hidden = false;
-    setTimeout(() => $('#syncKey').focus(), 30);
-  }
-
-  async function saveSyncDialog() {
-    syncCfg = { url: $('#syncUrl').value.trim(), key: $('#syncKey').value.trim() };
-    writeJSON(SYNC_KEY, syncCfg);
-    const msg = $('#syncMsg');
-    if (!syncOn()) {
-      setSyncPill('off', 'Sync off');
-      $('#syncBackdrop').hidden = true;
-      return;
-    }
-    msg.hidden = false; msg.dataset.tone = ''; msg.textContent = 'Checking…';
-    try {
-      const res = await fetch(apiRoot() + '/auth', { headers: { Authorization: `Bearer ${syncCfg.key}` } });
-      if (!res.ok) throw new Error();
-      msg.dataset.tone = 'ok'; msg.textContent = 'Connected. Syncing…';
-      await syncNow();
-      $('#syncBackdrop').hidden = true;
-    } catch {
-      msg.dataset.tone = 'err'; msg.textContent = 'Could not reach the server with that key.';
-      setSyncPill('error', 'Bad key');
-    }
+    syncTimer = setTimeout(syncNow, 500);
   }
 
   // ---------- view switching ----------
@@ -429,21 +495,33 @@
 
   startPauseEl.addEventListener('click', () => (running ? pause() : start()));
   resetEl.addEventListener('click', resetTimer);
-
-  $('#syncStatus').addEventListener('click', openSyncDialog);
-  $('#syncSave').addEventListener('click', saveSyncDialog);
-  $('#syncCancel').addEventListener('click', () => { $('#syncBackdrop').hidden = true; });
+  exportSessionsEl.addEventListener('click', exportSessions);
+  importSessionsEl.addEventListener('click', () => importFileEl.click());
+  importFileEl.addEventListener('change', () => importSessions(importFileEl.files[0]));
   window.addEventListener('online', syncNow);
-  setInterval(() => { if (syncOn()) syncNow(); }, 60000);
+  lockAppEl.addEventListener('click', lockApp);
+  $('#authLogin').addEventListener('click', async () => {
+    const entered = accessKeyEl.value.trim();
+    if (!entered) {
+      showLogin('Enter an access key.');
+      return;
+    }
+    accessKey = entered;
+    writeJSON(ACCESS_KEY, accessKey);
+    authMsgEl.textContent = 'Checking key…';
+    authMsgEl.hidden = false;
+    const valid = await syncNow();
+    if (!valid) authMsgEl.textContent = 'Could not connect to the server.';
+  });
+  accessKeyEl.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') $('#authLogin').click();
+  });
 
   $('#assignSave').addEventListener('click', () => finishAssign(true));
   $('#assignSkip').addEventListener('click', () => finishAssign(false));
   assignBlock.addEventListener('keydown', (e) => { if (e.key === 'Enter') finishAssign(true); });
 
-  $('#syncBackdrop').addEventListener('click', (e) => { if (e.target.id === 'syncBackdrop') $('#syncBackdrop').hidden = true; });
-
   document.addEventListener('keydown', (e) => {
-    if (!$('#syncBackdrop').hidden) { if (e.key === 'Escape') $('#syncBackdrop').hidden = true; return; }
     if (!backdrop.hidden) { if (e.key === 'Escape') finishAssign(true); return; }
     if (e.target.matches('input')) return;
     if (e.code === 'Space') { e.preventDefault(); running ? pause() : start(); }
@@ -492,7 +570,7 @@
   restore();
   renderToday();
   renderReport();
+  if (accessKey) syncNow();
+  else showLogin();
 
-  setSyncPill(syncOn() ? 'syncing' : 'off', syncOn() ? 'Syncing…' : 'Sync off');
-  if (syncOn()) syncNow();
 })();

@@ -20,7 +20,10 @@
     <nav class="nav">
       <button class="nav-link is-active" data-view="timer">Timer</button>
       <button class="nav-link" data-view="report">Report</button>
-      <button id="syncStatus" class="sync-pill" title="Sync settings" data-state="off">Sync off</button>
+      <button id="exportSessions" class="nav-link" title="Download a backup of your sessions">Export</button>
+      <button id="importSessions" class="nav-link" title="Restore sessions from a backup">Import</button>
+      <button id="lockApp" class="nav-link" title="Lock Focusblocks">Lock</button>
+      <input id="importFile" type="file" accept="application/json,.json" hidden>
     </nav>
   </header>
 
@@ -129,23 +132,17 @@
     </div>
   </div>
 
-  <!-- sync settings dialog -->
-  <div id="syncBackdrop" class="backdrop" hidden>
-    <div class="dialog card" role="dialog" aria-modal="true" aria-labelledby="syncTitle">
-      <h3 id="syncTitle">Sync across devices</h3>
-      <p class="muted">Enter the sync key from your server to keep this device's session log in sync. Leave blank to keep everything only on this device.</p>
+  <div id="authBackdrop" class="backdrop" hidden>
+    <div class="dialog card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <h3 id="authTitle">Access Focusblocks</h3>
+      <p class="muted">Enter your access key to open your session history.</p>
       <label class="field">
-        <span>Server URL</span>
-        <input id="syncUrl" type="url" placeholder="This site" autocomplete="off">
+        <span>Access key</span>
+        <input id="accessKey" type="password" placeholder="Enter access key" autocomplete="current-password">
       </label>
-      <label class="field">
-        <span>Sync key</span>
-        <input id="syncKey" type="password" placeholder="paste key" autocomplete="off">
-      </label>
-      <p id="syncMsg" class="sync-msg" hidden></p>
+      <p id="authMsg" class="auth-msg" hidden></p>
       <div class="dialog-actions">
-        <button id="syncCancel" class="btn-ghost">Cancel</button>
-        <button id="syncSave" class="btn-primary">Save</button>
+        <button id="authLogin" class="btn-primary">Log in</button>
       </div>
     </div>
   </div>

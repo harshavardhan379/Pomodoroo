@@ -54,33 +54,13 @@ h1, h2, h3, .clock, .brand-name, .kpi-value, .page-title {
   display: flex; align-items: center; justify-content: center;
 }
 .brand-name { font-weight: 600; font-size: 17px; }
-.nav { display: flex; gap: 4px; }
+.nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
 .nav-link {
   border: 0; background: transparent; cursor: pointer;
   padding: 7px 14px; border-radius: 8px;
   font: inherit; font-size: 14px; font-weight: 500; color: var(--muted);
 }
 .nav-link.is-active { background: var(--seg-bg); color: var(--ink); font-weight: 600; }
-
-.sync-pill {
-  border: 1px solid var(--line); background: transparent; cursor: pointer;
-  font: inherit; font-size: 12px; font-weight: 600;
-  padding: 6px 12px; border-radius: 999px; color: var(--muted);
-  display: inline-flex; align-items: center; gap: 6px; margin-left: 6px;
-}
-.sync-pill::before {
-  content: ""; width: 7px; height: 7px; border-radius: 50%;
-  background: var(--faint);
-}
-.sync-pill[data-state="on"] { color: #2f7d68; border-color: #cfe6de; }
-.sync-pill[data-state="on"]::before { background: #2f8a75; }
-.sync-pill[data-state="error"] { color: var(--accent-ink); border-color: #eccbc1; }
-.sync-pill[data-state="error"]::before { background: var(--accent); }
-.sync-pill[data-state="syncing"]::before { background: #d8a24a; }
-
-.sync-msg { margin: 0 0 12px; font-size: 13px; }
-.sync-msg[data-tone="ok"] { color: #2f7d68; }
-.sync-msg[data-tone="err"] { color: var(--accent-ink); }
 
 main { max-width: 720px; margin: 0 auto; padding: 40px 24px 72px; }
 
@@ -247,9 +227,11 @@ main { max-width: 720px; margin: 0 auto; padding: 40px 24px 72px; }
   padding: 10px 18px; border-radius: 10px;
 }
 .btn-ghost:hover { color: var(--ink); }
+.auth-msg { margin: 0 0 12px; color: var(--accent-ink); font-size: 13px; }
 
 @media (max-width: 560px) {
   .topbar { padding: 16px 20px; }
+  .nav-link { padding: 6px 8px; font-size: 12px; }
   main { padding: 28px 16px 60px; }
   .kpis { grid-template-columns: 1fr; }
   .tr { grid-template-columns: 40px 1fr 108px 64px; padding: 12px 14px; font-size: 13px; }

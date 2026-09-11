@@ -1,96 +1,35 @@
 # Focusblocks
 
-A simple Pomodoro web app. Three timer modes, a circular countdown, and a session log
-where every finished Pomodoro is tagged with a **task** and a **block** (a free-text
-category). A report page shows sessions per day and a table you can sort by block.
+A single-user Pomodoro timer with a shared SQLite session history. It includes three timer modes, a circular countdown, local session history, and a seven-day report.
 
-The frontend works entirely offline in the browser. Point it at the bundled Node backend
-and your session log **syncs across devices**.
+## Use it
 
-## Quick start
+For local use, install Node.js 20+ and run:
 
 ```bash
 npm install
 npm start
 ```
 
-Open http://localhost:3000. The console prints a **sync key** on first run — open the
-**Sync** pill in the top bar and paste it in to enable syncing. (Without a key, everything
-still works and is stored in `localStorage`.)
+Open http://localhost:3000. For cross-device use on Netlify, deploy the repository and enable Netlify Blobs; the site will use the serverless session API automatically.
+
+Set the same private `ACCESS_KEY` environment variable in your local server or Netlify site settings. The app asks for this key when you log in and sends it only to your own backend. For Netlify, use Site configuration -> Environment variables. For Fly.io, run `fly secrets set ACCESS_KEY="your-private-key"`.
 
 For local timer testing, add `?fast` to the URL to run each minute as one second.
 
-## How it works
-
-- **Frontend** (`public/`) — plain HTML/CSS/JS, no build step. `localStorage` is the
-  offline-first working copy; the timer itself is saved continuously and resumes after a
-  reload or the machine sleeping.
-- **Backend** (`server/`) — Express + SQLite (`better-sqlite3`). Serves the frontend and a
-  small API. Single dataset, protected by one sync key.
-- **Sync** — the client sends its whole session log to `PUT /api/sessions` and gets the
-  merged set back. Merges are last-writer-wins per record, decided by `updatedAt`, so two
-  devices editing different sessions both keep their changes. A finished Pomodoro is
-  written to the log *before* the tag dialog, so it survives a tab close either way.
-
-### API
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/health` | liveness, no auth |
-| `GET` | `/api/auth` | validate a sync key |
-| `GET` | `/api/sessions` | full session log |
-| `PUT` | `/api/sessions` | push local changes, receive the merged log |
-| `POST` | `/api/sessions` | upsert a single session |
-
-All except `/api/health` require `Authorization: Bearer <SYNC_KEY>`.
-
-## Configuration
-
-| Env var | Default | Notes |
-| --- | --- | --- |
-| `PORT` | `3000` | |
-| `DATA_DIR` | `./data` | where `focusblocks.db` and the generated key live |
-| `SYNC_KEY` | *(generated)* | set this on a deployed instance |
-| `ALLOW_ORIGIN` | *(off)* | set to your frontend origin only if it's hosted separately |
-
-## Deploy
-
-### Netlify (frontend)
-
-The timer works as a static site. In the Netlify UI, connect this repo and leave
-build settings to `netlify.toml` (publish directory `public`, no real build).
-
-Do **not** set the build command to `npm start` — that starts a long-lived Express
-server, which Netlify does not run. Session data stays in the browser
-(`localStorage`). Cross-device sync is optional: host the API elsewhere, then
-paste that origin and sync key in the **Sync** pill.
-
-### Docker / Fly / Railway / Render (frontend + API)
-
-Any host that runs a container with a persistent volume works. The repo includes a
-`Dockerfile` and a `fly.toml`:
-
-```bash
-fly launch --no-deploy
-fly volumes create focusblocks_data --size 1
-fly secrets set SYNC_KEY=$(openssl rand -base64 24)
-fly deploy
-```
-
-On Railway / Render, deploy from the Dockerfile, attach a volume mounted at `/data`, and
-set `SYNC_KEY`. The frontend is served from the same origin, so there's nothing else to
-host.
+The backend stores sessions in Netlify Blobs when deployed there, or SQLite when run with Express locally. The browser also keeps a local cache for offline use and automatically merges changes by session ID and `updatedAt`. Export and Import remain available as manual backups.
 
 ## Project layout
 
 ```
-public/            frontend (index.html, styles.css, app.js)
-server/            index.js (Express) + db.js (SQLite)
-design/            the design canvas this was built from
-Dockerfile         one container: API + static + SQLite
-fly.toml           example deploy config
+public/            static app (index.html, styles.css, app.js)
+server/            Express API and SQLite storage
+design/            design canvas files
+Dockerfile         container deployment configuration
+fly.toml           Fly.io deployment configuration
+netlify.toml       Netlify Functions and redirect configuration
 ```
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).
