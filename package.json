@@ -1,7 +1,7 @@
 {
   "name": "focusblocks",
   "version": "1.0.0",
-  "description": "A single-user Pomodoro web app with shared SQLite session history.",
+  "description": "A key-scoped Pomodoro web app with shared session history.",
   "type": "module",
   "license": "MIT",
   "scripts": {

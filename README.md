@@ -1,6 +1,6 @@
 # Focusblocks
 
-A single-user Pomodoro timer with a shared SQLite session history. It includes three timer modes, a circular countdown, local session history, and a seven-day report.
+A private key-scoped Pomodoro timer with shared session history. It includes three timer modes, a circular countdown, local session history, and a seven-day report.
 
 ## Use it
 
@@ -13,7 +13,13 @@ npm start
 
 Open http://localhost:3000. For cross-device use on Netlify, deploy the repository and enable Netlify Blobs; the site will use the serverless session API automatically.
 
-Set the same private `ACCESS_KEY` environment variable in your local server or Netlify site settings. The app asks for this key when you log in and sends it only to your own backend. For Netlify, use Site configuration -> Environment variables. For Fly.io, run `fly secrets set ACCESS_KEY="your-private-key"`.
+Set `ACCESS_KEYS` in your local server or Netlify site settings. Put one private key per line or separate keys with commas. For example, five users can use five different keys:
+
+```text
+ACCESS_KEYS=first-private-key,second-private-key,third-private-key,fourth-private-key,fifth-private-key
+```
+
+Each key gets a separate session history. The app asks for the key when a user logs in and sends it only to your backend. `ACCESS_KEY` is still accepted for a single-key setup. For Netlify, use Site configuration -> Environment variables. For Fly.io, run `fly secrets set ACCESS_KEYS="key-one,key-two,key-three,key-four,key-five"`.
 
 For local timer testing, add `?fast` to the URL to run each minute as one second.
 
