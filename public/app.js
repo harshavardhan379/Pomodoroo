@@ -12,10 +12,11 @@
     Object.values(MODES).forEach((m) => { m.seconds = m.minutes; });
   }
   const RING_CIRCUMFERENCE = 2 * Math.PI * 132; // r = 132
-  const STORE_KEY = 'focusblocks.sessions.v1';
   const TIMER_KEY = 'focusblocks.timer.v1';
   const PENDING_KEY = 'focusblocks.pending.v1';
   const ACCESS_KEY = 'focusblocks.access.v1';
+  const LEGACY_STORE_KEY = 'focusblocks.sessions.v1';
+  const MIGRATED_KEY = 'focusblocks.sessions.migrated.v1';
   const CHIME_HZ = [880, 660, 990];
   const API_ROOT = '/api';
 
@@ -39,8 +40,27 @@
   const writeJSON = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
   const remove = (key) => { try { localStorage.removeItem(key); } catch {} };
 
-  let sessions = readJSON(STORE_KEY, []).map((s) => ({ updatedAt: s.ts, ...s }));
-  const saveSessions = () => writeJSON(STORE_KEY, sessions);
+  const cacheKeyFor = (key) => `focusblocks.sessions.${encodeURIComponent(key)}`;
+  let sessions = [];
+  const saveSessions = () => {
+    if (accessKey) writeJSON(cacheKeyFor(accessKey), sessions);
+  };
+
+  function loadSessionsFor(key) {
+    const cached = localStorage.getItem(cacheKeyFor(key));
+    if (cached !== null) {
+      sessions = readJSON(cacheKeyFor(key), []).map((s) => ({ updatedAt: s.ts, ...s }));
+    } else if (!localStorage.getItem(MIGRATED_KEY)) {
+      sessions = readJSON(LEGACY_STORE_KEY, []).map((s) => ({ updatedAt: s.ts, ...s }));
+      saveSessions();
+      remove(LEGACY_STORE_KEY);
+      writeJSON(MIGRATED_KEY, true);
+    } else {
+      sessions = [];
+    }
+    renderToday();
+    renderReport();
+  }
 
   function saveTimer() {
     writeJSON(TIMER_KEY, { mode, running, endAt, remaining });
@@ -96,6 +116,9 @@
   function lockApp() {
     accessKey = '';
     remove(ACCESS_KEY);
+    sessions = [];
+    renderToday();
+    renderReport();
     showLogin();
   }
 
@@ -392,6 +415,10 @@
         showLogin('That access key is not valid.');
         return false;
       }
+      if (read.status === 503) {
+        showLogin('ACCESS_KEYS is not configured on the server.');
+        return false;
+      }
       if (!read.ok) throw new Error(`http ${read.status}`);
       const remote = (await read.json()).sessions || [];
       const merged = mergeSessions(remote);
@@ -448,6 +475,7 @@
       return;
     }
     accessKey = entered;
+    loadSessionsFor(accessKey);
     writeJSON(ACCESS_KEY, accessKey);
     authMsgEl.textContent = 'Checking key…';
     authMsgEl.hidden = false;
@@ -508,6 +536,7 @@
     render();
   }
 
+  if (accessKey) loadSessionsFor(accessKey);
   restore();
   renderToday();
   renderReport();
