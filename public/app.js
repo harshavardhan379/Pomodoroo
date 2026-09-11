@@ -74,9 +74,6 @@
   const assignTask = $('#assignTask');
   const assignBlock = $('#assignBlock');
   const blockList = $('#blockList');
-  const exportSessionsEl = $('#exportSessions');
-  const importSessionsEl = $('#importSessions');
-  const importFileEl = $('#importFile');
   const lockAppEl = $('#lockApp');
   const authBackdrop = $('#authBackdrop');
   const accessKeyEl = $('#accessKey');
@@ -100,59 +97,6 @@
     accessKey = '';
     remove(ACCESS_KEY);
     showLogin();
-  }
-
-  // ---------- portable backups ----------
-  function exportSessions() {
-    const backup = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), sessions }, null, 2);
-    const blob = new Blob([backup], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `focusblocks-sessions-${todayKey()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function importSessions(file) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result);
-        const incoming = Array.isArray(parsed) ? parsed : parsed.sessions;
-        if (!Array.isArray(incoming)) throw new Error('invalid backup');
-
-        const imported = incoming
-          .filter((session) => session && typeof session.id === 'string' && Number.isFinite(session.ts))
-          .map((session) => ({
-            id: session.id,
-            date: session.date || dayKey(new Date(session.ts)),
-            ts: session.ts,
-            task: String(session.task || ''),
-            block: String(session.block || 'Unassigned'),
-            minutes: Number(session.minutes) || MODES.pomodoro.minutes,
-            updatedAt: Number(session.updatedAt) || session.ts,
-          }));
-
-        const byId = new Map(sessions.map((session) => [session.id, session]));
-        imported.forEach((session) => {
-          const existing = byId.get(session.id);
-          if (!existing || session.updatedAt >= existing.updatedAt) byId.set(session.id, session);
-        });
-        sessions = [...byId.values()].sort((a, b) => a.ts - b.ts);
-        saveSessions();
-        render();
-        renderToday();
-        renderReport();
-        pushSync();
-        alert(`${imported.length} session${imported.length === 1 ? '' : 's'} imported.`);
-      } catch {
-        alert('That file is not a valid Focusblocks backup.');
-      }
-      importFileEl.value = '';
-    };
-    reader.readAsText(file);
   }
 
   // ---------- timer ----------
@@ -495,9 +439,6 @@
 
   startPauseEl.addEventListener('click', () => (running ? pause() : start()));
   resetEl.addEventListener('click', resetTimer);
-  exportSessionsEl.addEventListener('click', exportSessions);
-  importSessionsEl.addEventListener('click', () => importFileEl.click());
-  importFileEl.addEventListener('change', () => importSessions(importFileEl.files[0]));
   window.addEventListener('online', syncNow);
   lockAppEl.addEventListener('click', lockApp);
   $('#authLogin').addEventListener('click', async () => {

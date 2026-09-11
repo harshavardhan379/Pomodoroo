@@ -23,7 +23,7 @@ Each key gets a separate session history. The app asks for the key when a user l
 
 For local timer testing, add `?fast` to the URL to run each minute as one second.
 
-The backend stores sessions in Netlify Blobs when deployed there, or SQLite when run with Express locally. The browser also keeps a local cache for offline use and automatically merges changes by session ID and `updatedAt`. Export and Import remain available as manual backups.
+The backend stores sessions in Netlify Blobs when deployed there, or SQLite when run with Express locally. The browser also keeps a local cache for offline use and automatically merges changes by session ID and `updatedAt`.
 
 ## Project layout
 
