@@ -34,6 +34,19 @@
           <button class="seg" data-mode="long" role="tab">Long Break</button>
         </div>
 
+        <div class="run-planner" aria-labelledby="plannerTitle">
+          <div class="planner-copy">
+            <span id="plannerTitle" class="planner-title">Plan a focus run</span>
+            <span id="planSummary" class="planner-summary">Set a total time and we’ll fit in as many 25-minute sessions as possible.</span>
+          </div>
+          <div class="planner-form">
+            <label class="duration-input"><span>Hours</span><input id="planHours" type="number" min="0" max="24" placeholder="0" inputmode="numeric"></label>
+            <label class="duration-input"><span>Minutes</span><input id="planMinutes" type="number" min="0" max="59" placeholder="0" inputmode="numeric"></label>
+            <button id="planStart" class="btn-plan">Plan &amp; start</button>
+          </div>
+          <p id="planMsg" class="plan-msg" role="status" hidden></p>
+        </div>
+
         <div class="ring-wrap">
           <svg class="ring" width="300" height="300" viewBox="0 0 300 300">
             <circle class="ring-track" cx="150" cy="150" r="132" fill="none" stroke-width="14"></circle>
