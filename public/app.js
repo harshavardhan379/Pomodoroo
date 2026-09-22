@@ -29,6 +29,7 @@
   let ticker = null;
   let reportSort = 'block';
   let pendingId = null; // session awaiting a task/block
+  let plan = null;
 
   function modeSeconds(m) { return MODES[m].seconds ?? MODES[m].minutes * 60; }
 
@@ -63,7 +64,7 @@
   }
 
   function saveTimer() {
-    writeJSON(TIMER_KEY, { mode, running, endAt, remaining });
+    writeJSON(TIMER_KEY, { mode, running, endAt, remaining, plan });
   }
   function clearTimer() { remove(TIMER_KEY); }
 
@@ -89,6 +90,11 @@
   const ringProgressEl = $('.ring-progress');
   const startPauseEl = $('#startPause');
   const resetEl = $('#reset');
+  const planHoursEl = $('#planHours');
+  const planMinutesEl = $('#planMinutes');
+  const planStartEl = $('#planStart');
+  const planSummaryEl = $('#planSummary');
+  const planMsgEl = $('#planMsg');
   const backdrop = $('#assignBackdrop');
   const assignNo = $('#assignNo');
   const assignTask = $('#assignTask');
@@ -123,7 +129,8 @@
   }
 
   // ---------- timer ----------
-  function setMode(next) {
+  function setMode(next, preservePlan = false) {
+    if (next !== 'pomodoro' && !preservePlan) plan = null;
     mode = next;
     totalSeconds = modeSeconds(mode);
     remaining = totalSeconds;
@@ -161,6 +168,7 @@
   }
 
   function resetTimer() {
+    plan = null;
     running = false;
     clearInterval(ticker);
     remaining = totalSeconds;
@@ -187,6 +195,14 @@
     if (mode === 'pomodoro') {
       const id = logCompletedPomodoro();
       openAssign(id);
+      if (plan) {
+        plan.completed += 1;
+        plan.remaining -= 1;
+        saveTimer();
+      }
+    } else if (plan && plan.active) {
+      setMode('pomodoro', true);
+      start();
     } else {
       remaining = totalSeconds;
       render();
@@ -201,11 +217,49 @@
 
     if (mode === 'pomodoro') {
       const n = countToday() + (pendingId ? 0 : 1);
-      ringSubEl.innerHTML = `Session #${n} &middot; ${MODES[mode].sub}`;
+      ringSubEl.innerHTML = plan
+        ? `Session ${plan.completed + (pendingId ? 0 : 1)} of ${plan.totalSessions} &middot; ${MODES[mode].sub}`
+        : `Session #${n} &middot; ${MODES[mode].sub}`;
     } else {
       ringSubEl.textContent = MODES[mode].sub;
     }
+    renderPlan();
     document.title = running ? `${fmtClock(remaining)} · Focusblocks` : 'Focusblocks';
+  }
+
+  function renderPlan() {
+    if (!plan) {
+      planSummaryEl.textContent = 'Set a total time and we’ll fit in as many 25-minute sessions as possible.';
+      planStartEl.textContent = 'Plan & start';
+      planStartEl.disabled = false;
+      planMsgEl.hidden = true;
+      return;
+    }
+    const status = plan.active
+      ? `${plan.completed} of ${plan.totalSessions} sessions complete`
+      : `Run complete · ${plan.totalSessions} sessions planned`;
+    planSummaryEl.textContent = `${status} · ${fmtDuration(plan.totalMinutes)} focus time`;
+    planStartEl.textContent = plan.active ? 'Run in progress' : 'Plan & start';
+    planStartEl.disabled = plan.active;
+    planMsgEl.hidden = !plan.active;
+    planMsgEl.textContent = plan.remaining > 0
+      ? `${plan.remaining} Pomodoro${plan.remaining === 1 ? '' : 's'} left. Breaks will start automatically.`
+      : 'All planned sessions are complete.';
+  }
+
+  function startPlan() {
+    const hours = Math.max(0, Math.min(24, Number(planHoursEl.value) || 0));
+    const minutes = Math.max(0, Math.min(59, Number(planMinutesEl.value) || 0));
+    const totalMinutes = hours * 60 + minutes;
+    const totalSessions = Math.floor(totalMinutes / MODES.pomodoro.minutes);
+    if (totalSessions < 1) {
+      planMsgEl.hidden = false;
+      planMsgEl.textContent = 'Enter at least 25 minutes to plan a session.';
+      return;
+    }
+    plan = { totalMinutes, totalSessions, remaining: totalSessions, completed: 0, active: true };
+    setMode('pomodoro', true);
+    start();
   }
 
   // ---------- chime ----------
@@ -272,8 +326,20 @@
     pendingId = null;
     remove(PENDING_KEY);
     backdrop.hidden = true;
-    remaining = totalSeconds;
-    render();
+    if (plan && plan.active && plan.remaining > 0) {
+      const nextBreak = plan.completed % 4 === 0 ? 'long' : 'short';
+      setMode(nextBreak, true);
+      start();
+    } else if (plan && plan.active) {
+      plan.active = false;
+      setMode('pomodoro', true);
+      remaining = totalSeconds;
+      saveTimer();
+      render();
+    } else {
+      remaining = totalSeconds;
+      render();
+    }
     renderToday();
     renderReport();
   }
@@ -463,6 +529,7 @@
   $$('.seg').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
   $$('.nav-link').forEach((b) => b.addEventListener('click', () => showView(b.dataset.view)));
   $$('.sort-btn').forEach((b) => b.addEventListener('click', () => { reportSort = b.dataset.sort; renderReport(); }));
+  planStartEl.addEventListener('click', startPlan);
 
   startPauseEl.addEventListener('click', () => (running ? pause() : start()));
   resetEl.addEventListener('click', resetTimer);
@@ -501,6 +568,9 @@
 
   // ---------- init: restore a timer that was mid-run ----------
   function restore() {
+    const saved = readJSON(TIMER_KEY, null);
+    if (saved && MODES[saved.mode]) plan = saved.plan || null;
+
     // a session finished but was never tagged (tab closed with the dialog open)
     const pend = readJSON(PENDING_KEY, null);
     if (pend != null && findSession(pend)) {
@@ -509,7 +579,6 @@
       return;
     }
 
-    const saved = readJSON(TIMER_KEY, null);
     if (!saved || !MODES[saved.mode]) { setMode('pomodoro'); return; }
 
     mode = saved.mode;
